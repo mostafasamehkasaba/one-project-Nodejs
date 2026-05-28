@@ -1,42 +1,49 @@
-
-const express = require("express")
-
+const express = require("express");
 const app = express();
 
-const fs = require("fs");
+require("dotenv").config();
 
+const cors = require("cors");
+const mongoose = require("mongoose");
 
-app.use('/about',(req,res,next) => {
-    console.log("Middleware 1")
-   
-    console.log("METHOD : ",req.method, req.originalUrl)
-    next() // go to next function
+const url = process.env.MONGO_URL;
 
-})
+const httpSucess = require("./utiles/httpSuccess");
 
-app.use('products',(req,res,next) =>{
-    
-     console.log("Middleware 2")
-     next()
-})
-app.get("/" ,(req,res)=>{
-    res.send('hello world')
-})
+mongoose.connect(url).then(() => {
+    console.log("mongodb connected");
+});
 
+app.use(express.json());
+app.use(cors());
 
-app.get('/about' ,(req,res) =>{
-    res.send("hello form about page")
-})
+// app.use('/uploads')
 
-   app.get('/products' , (req,res) =>{
-        res.send([
-            {id :1, title: "Product 1"},
-            {id :2, title: "Product 2"}
+// routes
+const courseRouter = require("./routes/courses.route");
+const usersRouter = require("./routes/users.route");
 
-        ])
-    })
+app.use("/api/courses", courseRouter);
+app.use("/api/users", usersRouter)
 
+// 404 middleware
+app.use((req, res) => {
+    return res.status(404).json({
+        status: httpSucess.ERROR,
+        message: "this resource is not available"
+    });
+});
 
-app.listen(3000, "localhost", () => {
-    console.log("listing on port : 5000")
-})
+// error middleware
+app.use((err, req, res, next) => {
+
+    res.status(err.statusCode || 500).json({
+        status: err.statusText || httpSucess.ERROR,
+        message: err.message || "Internal Server Error"
+    });
+
+});
+
+app.listen(process.env.PORT || 4000, () => {
+    console.log("listening on port 4000");
+});
